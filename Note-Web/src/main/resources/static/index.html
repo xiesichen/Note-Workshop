@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>笔记工坊</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        .header { background: #4a90d9; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 800px; margin: 20px auto; }
+        .card { background: white; border-radius: 8px; padding: 15px;
+            margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,.08); }
+        .card h3 { margin: 0 0 8px; }
+        .meta { color: #999; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>📓 笔记工坊</h2>
+    <div>
+        <a href="/login.html" style="color:white;">登录</a>
+    </div>
+</div>
+
+<div class="container" id="list">
+    <!-- 笔记列表由 JS 填充 -->
+</div>
+
+<script>
+    fetch('/note/list')
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById('list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p>还没有笔记</p>';
+                return;
+            }
+            list.innerHTML = data.map(n => `
+                    <div class="card">
+                        <h3>${n.title}</h3>
+                        <div class="meta">${n.createTime || ''}</div>
+                        <p>${n.content || ''}</p>
+                    </div>
+                `).join('');
+        });
+</script>
+</body>
+</html>

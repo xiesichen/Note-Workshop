@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+    <style>
+        body { font-family: sans-serif; display: flex; align-items: center;
+            justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
+        .box { background: #fff; padding: 30px; border-radius: 8px; width: 300px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+        h3 { margin: 0 0 20px; text-align: center; }
+        input { width: 100%; padding: 9px; margin: 6px 0; box-sizing: border-box;
+            border: 1px solid #ddd; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #4a90d9; color: #fff;
+            border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        #msg { color: #e74c3c; font-size: 14px; margin-top: 12px; min-height: 20px;
+            text-align: center; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h3>📓 笔记工坊</h3>
+    <input id="u" placeholder="账号">
+    <input id="p" type="password" placeholder="密码">
+    <button onclick="login()">登 录</button>
+    <div id="msg"></div>
+</div>
+
+<script>
+    function login() {
+        const username = document.getElementById('u').value;
+        const password = document.getElementById('p').value;
+
+        fetch('/user/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+            .then(res => {
+                if (!res.ok) throw new Error('fail');
+                return res.json();
+            })
+            .then(user => {
+                document.getElementById('msg').style.color = '#27ae60';
+                document.getElementById('msg').textContent =
+                    '登录成功：' + (user.nickname || user.username);
+            })
+            .catch(() => {
+                document.getElementById('msg').style.color = '#e74c3c';
+                document.getElementById('msg').textContent = '账号或密码错误';
+            });
+    }
+</script>
+</body>
+</html>
