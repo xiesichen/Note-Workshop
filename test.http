@@ -1,0 +1,30 @@
+@host = http://localhost:8080
+
+### 1) 查笔记列表
+GET {{host}}/note/list
+
+### 2) 查详情 id=1
+GET {{host}}/note/detail/1
+
+### 3) 查详情 id=999（不存在）
+GET {{host}}/note/detail/999
+
+### 4) 新增笔记
+POST {{host}}/note/add
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "title": "通过接口插入的笔记",
+  "content": "这是测试内容",
+  "isPublic": 1
+}
+
+### 5) 删除 id=7
+DELETE {{host}}/note/delete?id=7
+
+### 6) 登录
+POST {{host}}/user/login
+Content-Type: application/json
+
+{"username":"admin","password":"123456"}

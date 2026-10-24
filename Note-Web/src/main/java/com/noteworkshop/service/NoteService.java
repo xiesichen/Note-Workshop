@@ -10,4 +10,12 @@ public interface NoteService {
      * 查询所有未删除的笔记
      */
     List<Note> findAll();
+
+    void deleteById(Integer noteId);
+
+    void add(Note note);
+
+    Note findById(Integer id);
+
+    void update(Note note);
 }
