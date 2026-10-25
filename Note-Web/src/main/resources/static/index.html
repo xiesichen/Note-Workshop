@@ -9,24 +9,71 @@
             display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 800px; margin: 20px auto; }
         .card { background: white; border-radius: 8px; padding: 15px;
-            margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,.08); }
+            margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,.08);
+            cursor: pointer; transition: box-shadow .15s, transform .15s; }
+        .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.14); transform: translateY(-1px); }
         .card h3 { margin: 0 0 8px; }
         .meta { color: #999; font-size: 13px; }
+
+        /* 【新增】顶栏链接的样式 */
+        .header a { color: white; text-decoration: none; margin-left: 12px; }
+        .header a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
+
 <div class="header">
     <h2>📓 笔记工坊</h2>
     <div>
-        <a href="/login.html" style="color:white;">登录</a>
+        <a href="/add.html" id="writeBtn" style="display:none;">✏️ 写笔记</a>
+        <span id="userArea"></span>
     </div>
 </div>
 
 <div class="container" id="list">
-    <!-- 笔记列表由 JS 填充 -->
+    <!-- 笔记列表由下面的 JS 填充 -->
 </div>
 
+
+<!-- 【改动2】引入 common.js（必须先引入，后面才能用 getLoginUser 等函数） -->
+<script src="/common.js"></script>
+
 <script>
+    // ============================================================
+    // 【改动3】新增：渲染顶栏的登录状态
+    // ============================================================
+
+    // ① 读出当前登录用户
+    //    getLoginUser() 是 common.js 里的函数
+    //    登录了 → 返回对象 {id:1, nickname:"管理员", ...}
+    //    没登录 → 返回 null
+    const loginUser = getLoginUser();
+
+    // ② 找到顶栏右边那个 div
+    const userArea = document.getElementById('userArea');
+
+    // ③ 根据有没有登录，填不同的内容
+    if (loginUser) {
+        // ---- 已登录 ----
+        userArea.innerHTML = `
+            <span>欢迎，${loginUser.nickname || loginUser.username}</span>
+            <a href="javascript:void(0)" onclick="logout()">退出</a>
+        `;
+        //  ${loginUser.nickname || loginUser.username}
+        //      └───优先用昵称────┘    └─昵称没有就用账号─┘
+        //
+        //  onclick="logout()"  → 点"退出"时调用 common.js 里的 logout()
+        document.getElementById('writeBtn').style.display = 'inline';
+        //  href="javascript:void(0)" → 让 <a> 不跳转（只是个按钮的样子）
+    } else {
+        // ---- 未登录 ----
+        userArea.innerHTML = `<a href="/login.html">登录</a>`;
+    }
+
+
+    // ============================================================
+    // 下面是你原来的代码：加载笔记列表（没动）
+    // ============================================================
     fetch('/note/list')
         .then(res => res.json())
         .then(data => {
@@ -36,7 +83,7 @@
                 return;
             }
             list.innerHTML = data.map(n => `
-                    <div class="card">
+                    <div class="card" onclick="location.href='/detail.html?id=${n.id}'">
                         <h3>${n.title}</h3>
                         <div class="meta">${n.createTime || ''}</div>
                         <p>${n.content || ''}</p>
@@ -44,5 +91,6 @@
                 `).join('');
         });
 </script>
+
 </body>
 </html>

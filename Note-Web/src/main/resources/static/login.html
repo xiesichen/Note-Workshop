@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -15,6 +16,8 @@
             border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
         #msg { color: #e74c3c; font-size: 14px; margin-top: 12px; min-height: 20px;
             text-align: center; }
+        .back { text-align: center; margin-top: 16px; }
+        .back a { color: #999; font-size: 13px; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -24,12 +27,23 @@
     <input id="p" type="password" placeholder="密码">
     <button onclick="login()">登 录</button>
     <div id="msg"></div>
+    <div class="back"><a href="/">← 返回大厅</a></div>
 </div>
+
+<!-- ★ 新增①：引入 common.js，才能用 setLoginUser() -->
+<script src="/common.js"></script>
 
 <script>
     function login() {
-        const username = document.getElementById('u').value;
+        const username = document.getElementById('u').value.trim();
         const password = document.getElementById('p').value;
+
+        // 前端简单校验
+        if (!username || !password) {
+            document.getElementById('msg').style.color = '#e74c3c';
+            document.getElementById('msg').textContent = '账号和密码不能为空';
+            return;
+        }
 
         fetch('/user/login', {
             method: 'POST',
@@ -41,9 +55,16 @@
                 return res.json();
             })
             .then(user => {
+                // 显示"登录成功：管理员"
                 document.getElementById('msg').style.color = '#27ae60';
                 document.getElementById('msg').textContent =
                     '登录成功：' + (user.nickname || user.username);
+
+                // ★ 新增②：把用户对象存进 localStorage
+                setLoginUser(user);
+
+                // ★ 新增③：停 0.7 秒后跳回大厅
+                setTimeout(function () { location.href = '/'; }, 700);
             })
             .catch(() => {
                 document.getElementById('msg').style.color = '#e74c3c';

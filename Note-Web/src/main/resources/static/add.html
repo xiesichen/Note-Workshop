@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>写笔记 - 笔记工坊</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+
+        .header { background: #4a90d9; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 20px; }
+        .header a { color: white; text-decoration: none; margin-left: 12px; }
+
+        .box { max-width: 720px; margin: 24px auto; background: #fff;
+            padding: 26px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+        .who { font-size: 13px; color: #888; margin-bottom: 18px;
+            padding-bottom: 12px; border-bottom: 1px solid #eee; }
+
+        .row { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #555; font-size: 14px; }
+
+        input[type=text] { width: 100%; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+
+        textarea { width: 100%; min-height: 220px; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box; resize: vertical;
+            font-family: inherit; line-height: 1.7; }
+
+        input[type=text]:focus, textarea:focus { outline: none; border-color: #4a90d9; }
+
+        .radios { display: flex; gap: 24px; font-size: 14px; color: #444; }
+
+        .btns { display: flex; gap: 12px; margin-top: 24px; }
+        button { padding: 10px 24px; border: none; border-radius: 6px;
+            font-size: 14px; cursor: pointer; }
+        .primary { background: #4a90d9; color: #fff; }
+        .primary:hover { background: #3a7bc8; }
+        .primary:disabled { background: #aaa; cursor: not-allowed; }
+        .plain { background: #eee; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>📓 笔记工坊</h2>
+    <div><a href="/">← 返回大厅</a></div>
+</div>
+
+<div class="box">
+    <div class="who" id="who">加载中...</div>
+
+    <div class="row">
+        <label>标题 <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="title" placeholder="给笔记起个标题（最多 100 字）" maxlength="100">
+    </div>
+
+    <div class="row">
+        <label>内容</label>
+        <textarea id="content" placeholder="写点什么吧..."></textarea>
+    </div>
+
+    <div class="row">
+        <label>可见性</label>
+        <div class="radios">
+            <label style="display:inline;color:#444;">
+                <input type="radio" name="pub" value="1" checked> 公开
+            </label>
+            <label style="display:inline;color:#444;">
+                <input type="radio" name="pub" value="0"> 私有
+            </label>
+        </div>
+    </div>
+
+    <div class="btns">
+        <button class="primary" id="btn" onclick="submitNote()">发 布</button>
+        <button class="plain" onclick="location.href='/'">取 消</button>
+    </div>
+</div>
+
+<!-- ★ 引入公共函数 -->
+<script src="/common.js"></script>
+
+<script>
+    // ============================================================
+    // ① 进来先检查登录
+    //    requireLogin() 是 common.js 里的函数：
+    //    登录了 → 返回用户对象
+    //    没登录 → 弹窗 + 跳 /login.html + 返回 null
+    // ============================================================
+    const me = requireLogin();
+
+    if (me) {
+        document.getElementById('who').textContent =
+            '当前用户：' + (me.nickname || me.username) + '（id = ' + me.id + '）';
+    }
+
+    // ============================================================
+    // ② 提交
+    // ============================================================
+    async function submitNote() {
+        // 再检查一次登录（防止页面开着太久）
+        const user = requireLogin();
+        if (!user) return;
+
+        // 取表单的值
+        const title = document.getElementById('title').value.trim();
+        const content = document.getElementById('content').value.trim();
+        const isPublic = document.querySelector('input[name="pub"]:checked').value;
+
+        // 前端校验（后端也会再校验一次）
+        if (!title) {
+            alert('标题不能为空');
+            document.getElementById('title').focus();
+            return;
+        }
+
+        // 按钮防重复点击
+        const btn = document.getElementById('btn');
+        btn.disabled = true;
+        btn.textContent = '发布中...';
+
+        try {
+            // apiJson(url, method, data) 是 common.js 里的函数
+            // 它自动加上 Content-Type: application/json 并 JSON.stringify
+            await apiJson('/note/add', 'POST', {
+                userId: user.id,          // ★ 用当前登录用户的 id
+                title: title,
+                content: content,
+                isPublic: Number(isPublic)   // "1" → 1
+            });
+
+            alert('发布成功！');
+            location.href = '/';          // 跳回大厅看新笔记
+
+        } catch (e) {
+            alert('发布失败，请稍后重试');
+            console.error(e);
+            btn.disabled = false;
+            btn.textContent = '发 布';
+        }
+    }
+</script>
+
+</body>
+</html>
