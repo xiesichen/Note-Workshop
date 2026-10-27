@@ -36,6 +36,18 @@
         .back:hover { background: #e0e0e0; }
 
         .empty { text-align: center; color: #999; padding: 60px 0; font-size: 15px; }
+        /* ===== 评论区 ===== */
+        .c-item { padding: 12px 0; border-bottom: 1px solid #f2f2f2; }
+        .c-name { color: #4a90d9; font-size: 13px; font-weight: bold; }
+        .c-text { margin: 4px 0 0; font-size: 14px; line-height: 1.7;
+            white-space: pre-wrap; word-break: break-word; }
+        .c-reply { margin: 8px 0 0 24px; padding: 6px 0 0 12px;
+            border-left: 2px solid #eee; font-size: 13px; color: #555; }
+        .c-reply .c-name { color: #999; font-weight: normal; }
+        #cInput { width: 100%; min-height: 70px; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box;
+            resize: vertical; font-family: inherit; outline: none; }
+        #cInput:focus { border-color: #4a90d9; }
     </style>
 </head>
 <body>
@@ -47,6 +59,21 @@
 
 <div class="box" id="box">
     <div class="empty">加载中...</div>
+</div>
+<!-- ===== 评论区（单独一个盒子，在笔记下面） ===== -->
+<div class="box" id="cBox">
+    <h3 style="margin:0 0 14px;font-size:17px;">💬 评论 (<span id="cCount">0</span>)</h3>
+
+    <div id="cList"></div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee;">
+        <textarea id="cInput" placeholder="说点什么..."></textarea>
+        <button onclick="sendComment()"
+                style="margin-top:10px;padding:9px 22px;background:#4a90d9;color:#fff;
+                       border:none;border-radius:6px;font-size:14px;cursor:pointer;">
+            发表评论
+        </button>
+    </div>
 </div>
 
 <script src="/common.js"></script>
@@ -102,6 +129,7 @@
         box.innerHTML = `
             <h1 class="title">${note.title}</h1>
             <div class="meta">
+                <span>📖 ${note.bookName || '（未填写图书）'}</span>
                 <span>👤 作者 id：${note.userId}</span>
                 <span>🕒 创建：${fmt(note.createTime)}</span>
                 <span>🔄 更新：${fmt(note.updateTime)}</span>
@@ -144,7 +172,98 @@
             alert('删除失败：' + e.message);
         }
     }
+    // ============================================================
+    // ⑥ 评论区
+    // ============================================================
 
+    // 【核心】找一条评论最终挂到哪个"顶级评论"下
+    //   因为你的数据有三级：#1(顶级) → #2(回复#1) → #3(回复#2)
+    //   #3 的 parentId 是 2，不是 0，所以不能直接按 parentId 分组
+    //   这个函数一路往上追，追到 parentId === 0 为止
+    function findRootId(c, all) {
+        let cur = c;
+        while (cur.parentId !== 0) {
+            const parent = all.find(x => x.id === cur.parentId);
+            if (!parent) return 0;      // 找不到父级（可能被删了），当顶级处理
+            cur = parent;
+        }
+        return cur.id;                   // 返回顶级评论的 id
+    }
+
+    // 加载评论
+    async function loadComments() {
+        let all;
+        try {
+            all = await api('/comment/list?noteId=' + noteId);
+        } catch (e) {
+            document.getElementById('cList').innerHTML =
+                '<p style="color:#999;font-size:14px;">评论加载失败</p>';
+            return;
+        }
+
+        document.getElementById('cCount').textContent = all.length;
+
+        if (!all || all.length === 0) {
+            document.getElementById('cList').innerHTML =
+                '<p style="color:#999;font-size:14px;">还没有评论，来说第一句吧</p>';
+            return;
+        }
+
+        // 顶级评论（parentId === 0）
+        const roots = all.filter(c => c.parentId === 0);
+
+        document.getElementById('cList').innerHTML = roots.map(root => {
+            // 所有"根是这条"的评论 = 它的所有子孙（不管几级）
+            const children = all.filter(c =>
+                c.id !== root.id && findRootId(c, all) === root.id
+            );
+
+            return `
+                <div class="c-item">
+                    <span class="c-name">${root.userName || '匿名'}</span>
+                    <p class="c-text">${root.content}</p>
+                    ${children.map(ch => `
+                        <div class="c-reply">
+                            <span class="c-name">${ch.userName || '匿名'}</span>：${ch.content}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 发评论
+    async function sendComment() {
+        const me = requireLogin();       // 没登录会跳登录页
+        if (!me) return;
+
+        const input = document.getElementById('cInput');
+        const text = input.value.trim();
+
+        if (!text) {
+            alert('评论不能为空');
+            input.focus();
+            return;
+        }
+
+        try {
+            await apiJson('/comment/add', 'POST', {
+                noteId: Number(noteId),   // 当前这篇笔记
+                userId: me.id,            // 当前登录用户
+                parentId: 0,              // 0 = 顶级评论
+                content: text
+            });
+
+            input.value = '';             // 清空输入框
+            loadComments();               // 重新加载列表
+
+        } catch (e) {
+            alert('评论失败，请稍后重试');
+            console.error(e);
+        }
+    }
+
+    loadComments();     // 页面打开就加载评论
     load();
 </script>
 

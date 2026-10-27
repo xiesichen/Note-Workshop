@@ -20,6 +20,9 @@ public class Note {
     /** 作者id，关联 user.id */
     private Integer userId;
 
+    /** 图书名称（笔记必须指定一本书） */
+    private String bookName;
+
     /** 标题 */
     private String title;
 

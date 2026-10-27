@@ -44,4 +44,14 @@ public class NoteController {
         log.info("更新笔记: {}", note);
         return noteService.findById(note.getId());    // 返回更新后的最新数据
     }
+
+
+    /**
+     * 按关键字搜索笔记
+     * 访问：GET /note/search?keyword=大肥鱼
+     */
+    @GetMapping("/search")
+    public List<Note> search(@RequestParam String keyword) {
+        return noteService.search(keyword);
+    }
 }

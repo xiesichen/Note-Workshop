@@ -25,6 +25,7 @@
 <div class="header">
     <h2>📓 笔记工坊</h2>
     <div>
+        <input id="search" placeholder="🔍 搜索" style="padding:6px 10px;border:none;border-radius:4px;width:160px;">
         <a href="/add.html" id="writeBtn" style="display:none;">✏️ 写笔记</a>
         <span id="userArea"></span>
     </div>
@@ -74,22 +75,44 @@
     // ============================================================
     // 下面是你原来的代码：加载笔记列表（没动）
     // ============================================================
-    fetch('/note/list')
-        .then(res => res.json())
-        .then(data => {
-            const list = document.getElementById('list');
-            if (!data || data.length === 0) {
-                list.innerHTML = '<p>还没有笔记</p>';
-                return;
-            }
-            list.innerHTML = data.map(n => `
-                    <div class="card" onclick="location.href='/detail.html?id=${n.id}'">
-                        <h3>${n.title}</h3>
-                        <div class="meta">${n.createTime || ''}</div>
-                        <p>${n.content || ''}</p>
-                    </div>
-                `).join('');
-        });
+    // ===== 渲染函数：把一组笔记显示出来 =====
+    function render(notes) {
+        const list = document.getElementById('list');
+
+        if (!notes || notes.length === 0) {
+            list.innerHTML = '<p style="text-align:center;color:#999;padding:40px 0;">没有找到笔记</p>';
+            return;
+        }
+
+        list.innerHTML = notes.map(n => `
+            <div class="card" onclick="location.href='/detail.html?id=${n.id}'">
+                <h3>${n.title}</h3>
+                <div class="meta">${n.createTime || ''}</div>
+                <p>${n.content || ''}</p>
+            </div>
+        `).join('');
+    }
+
+    // ===== 首次加载全部笔记 =====
+    api('/note/list').then(render);
+    // ===== 搜索框：停止输入 300ms 后请求后端 =====
+    let searchTimer;
+
+    document.getElementById('search').addEventListener('input', function () {
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(async () => {
+            const kw = this.value.trim();
+
+            // 有关键字 → 查搜索接口；没关键字 → 查全部
+            const url = kw
+                ? '/note/search?keyword=' + encodeURIComponent(kw)
+                : '/note/list';
+
+            const notes = await api(url);
+            render(notes);
+        }, 300);
+    });
 </script>
 
 </body>

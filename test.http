@@ -28,3 +28,43 @@ POST {{host}}/user/login
 Content-Type: application/json
 
 {"username":"admin","password":"123456"}
+
+
+### 1) 查笔记 1 的评论
+GET {{host}}/comment/list?noteId=1
+
+### 2) 发一条顶级评论
+POST {{host}}/comment/add
+Content-Type: application/json
+
+{
+  "noteId": 1,
+  "userId": 1,
+  "parentId": 0,
+  "content": "这是我用接口发的评论"
+}
+
+### 3) 再查一次，应该多一条
+GET {{host}}/comment/list?noteId=1
+
+### 4) 发一条回复（回复 id=1 那条）
+POST {{host}}/comment/add
+Content-Type: application/json
+
+{
+  "noteId": 1,
+  "userId": 2,
+  "parentId": 1,
+  "content": "我在回复第一条"
+}
+
+### 5) 发空内容（应该报错）
+POST {{host}}/comment/add
+Content-Type: application/json
+
+{
+  "noteId": 1,
+  "userId": 1,
+  "parentId": 0,
+  "content": ""
+}

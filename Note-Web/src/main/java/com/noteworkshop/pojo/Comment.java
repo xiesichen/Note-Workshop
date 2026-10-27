@@ -34,4 +34,7 @@ public class Comment {
 
     /** 逻辑删除 0未删 1已删 */
     private Integer deleted;
+    // ★ 加在最后一个字段后面（deleted 后面）
+    /** 评论人显示名（JOIN user 表查出来的，不是 comment 表的列） */
+    private String userName;
 }

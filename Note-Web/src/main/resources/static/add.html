@@ -52,6 +52,7 @@
 
     <div class="row">
         <label>标题 <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="book" placeholder="图书名称（必填，如：Spring Boot 实战）" maxlength="100">
         <input type="text" id="title" placeholder="给笔记起个标题（最多 100 字）" maxlength="100">
     </div>
 
@@ -104,11 +105,17 @@
         if (!user) return;
 
         // 取表单的值
+        const bookName = document.getElementById('book').value.trim();
         const title = document.getElementById('title').value.trim();
         const content = document.getElementById('content').value.trim();
         const isPublic = document.querySelector('input[name="pub"]:checked').value;
 
         // 前端校验（后端也会再校验一次）
+        if (!bookName) {
+            alert('请填写图书名称');
+            document.getElementById('book').focus();
+            return;
+        }
         if (!title) {
             alert('标题不能为空');
             document.getElementById('title').focus();
@@ -125,6 +132,7 @@
             // 它自动加上 Content-Type: application/json 并 JSON.stringify
             await apiJson('/note/add', 'POST', {
                 userId: user.id,          // ★ 用当前登录用户的 id
+                bookName: bookName,       // 图书名称
                 title: title,
                 content: content,
                 isPublic: Number(isPublic)   // "1" → 1

@@ -5,8 +5,6 @@ import com.noteworkshop.pojo.Note;
 import com.noteworkshop.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -44,6 +42,11 @@ public class NoteServiceImpl implements NoteService {
             throw new RuntimeException("缺少作者信息");
         }
 
+        // 要求：笔记必须指定一本图书名字
+        if (note.getBookName() == null || note.getBookName().trim().isEmpty()) {
+            throw new RuntimeException("请填写图书名称");
+        }
+
         // ④ 默认公开
         if (note.getIsPublic() == null) {
             note.setIsPublic(1);
@@ -75,11 +78,23 @@ public class NoteServiceImpl implements NoteService {
             throw new RuntimeException("标题不能超过 100 个字");
         }
 
-        // ④ 执行更新，检查是否真的改到了
+        // ④ 图书名不能为空
+        if (note.getBookName() == null || note.getBookName().trim().isEmpty()) {
+            throw new RuntimeException("请填写图书名称");
+        }
+
+        // ⑤ 执行更新，检查是否真的改到了
         int rows = noteMapper.update(note);
         if (rows == 0) {
             throw new RuntimeException("笔记不存在或已被删除");
         }
+
+    }
+
+
+    @Override
+    public List<Note> search(String kw) {
+        return noteMapper.search(kw);
     }
 }
 

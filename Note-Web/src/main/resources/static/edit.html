@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑笔记 - 笔记工坊</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+
+        .header { background: #4a90d9; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 20px; }
+        .header a { color: white; text-decoration: none; margin-left: 12px; }
+
+        .box { max-width: 720px; margin: 24px auto; background: #fff;
+            padding: 26px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+        .who { font-size: 13px; color: #888; margin-bottom: 18px;
+            padding-bottom: 12px; border-bottom: 1px solid #eee; }
+
+        .row { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #555; font-size: 14px; }
+
+        input[type=text] { width: 100%; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+
+        textarea { width: 100%; min-height: 220px; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box; resize: vertical;
+            font-family: inherit; line-height: 1.7; }
+
+        input[type=text]:focus, textarea:focus { outline: none; border-color: #4a90d9; }
+
+        .radios { display: flex; gap: 24px; font-size: 14px; color: #444; }
+
+        .btns { display: flex; gap: 12px; margin-top: 24px; }
+        button, .btn { padding: 10px 24px; border: none; border-radius: 6px;
+            font-size: 14px; cursor: pointer; text-decoration: none;
+            display: inline-block; font-family: inherit; }
+        .primary { background: #4a90d9; color: #fff; }
+        .primary:hover { background: #3a7bc8; }
+        .primary:disabled { background: #aaa; cursor: not-allowed; }
+        .plain { background: #eee; color: #555; }
+
+        .empty { text-align: center; color: #999; padding: 50px 0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>📓 笔记工坊</h2>
+    <div><a href="/">← 返回大厅</a></div>
+</div>
+
+<div class="box" id="box">
+    <div class="empty">加载中...</div>
+</div>
+
+<script src="/common.js"></script>
+
+<script>
+    // ============================================================
+    // ① 取 URL 里的 id：/edit.html?id=3
+    // ============================================================
+    const noteId = new URLSearchParams(location.search).get('id');
+    const box = document.getElementById('box');
+
+    // ============================================================
+    // ② 初始化：加载原笔记 → 填进表单
+    // ============================================================
+    async function init() {
+        // 先检查登录
+        const me = requireLogin();
+        if (!me) return;
+
+        if (!noteId) {
+            box.innerHTML = '<div class="empty">缺少笔记 id</div>';
+            return;
+        }
+
+        // 查原笔记
+        let note;
+        try {
+            note = await api('/note/detail/' + noteId);
+        } catch (e) {
+            box.innerHTML = '<div class="empty">加载失败：' + e.message + '</div>';
+            return;
+        }
+
+        if (!note) {
+            box.innerHTML = '<div class="empty">笔记不存在或已被删除</div>';
+            return;
+        }
+
+        // 只能编辑自己的笔记
+        if (note.userId !== me.id) {
+            box.innerHTML = '<div class="empty">你只能编辑自己写的笔记</div>';
+            return;
+        }
+
+        // ============================================================
+        // ③ 渲染表单，把原数据填进去（value / checked）
+        // ============================================================
+        box.innerHTML = `
+            <div class="who">正在编辑：${note.title}</div>
+
+            <div class="row">
+                <label>图书名称 <span style="color:#e74c3c">*</span></label>
+                <input type="text" id="book" maxlength="100" value="${escapeHtml(note.bookName || '')}">
+            </div>
+
+            <div class="row">
+                <label>标题 <span style="color:#e74c3c">*</span></label>
+                <input type="text" id="title" maxlength="100" value="${escapeHtml(note.title)}">
+            </div>
+
+            <div class="row">
+                <label>内容</label>
+                <textarea id="content">${escapeHtml(note.content || '')}</textarea>
+            </div>
+
+            <div class="row">
+                <label>可见性</label>
+                <div class="radios">
+                    <label style="display:inline;color:#444;">
+                        <input type="radio" name="pub" value="1" ${note.isPublic === 1 ? 'checked' : ''}> 公开
+                    </label>
+                    <label style="display:inline;color:#444;">
+                        <input type="radio" name="pub" value="0" ${note.isPublic === 0 ? 'checked' : ''}> 私有
+                    </label>
+                </div>
+            </div>
+
+            <div class="btns">
+                <button class="primary" id="btn" onclick="save()">保 存</button>
+                <a class="btn plain" href="/detail.html?id=${note.id}">取 消</a>
+            </div>
+        `;
+    }
+
+    // ============================================================
+    // ④ 保存：PUT /note/update
+    // ============================================================
+    async function save() {
+        const me = requireLogin();
+        if (!me) return;
+
+        const bookName = document.getElementById('book').value.trim();
+        const title = document.getElementById('title').value.trim();
+        const content = document.getElementById('content').value.trim();
+        const isPublic = document.querySelector('input[name="pub"]:checked').value;
+
+        if (!bookName) {
+            alert('请填写图书名称');
+            document.getElementById('book').focus();
+            return;
+        }
+        if (!title) {
+            alert('标题不能为空');
+            document.getElementById('title').focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn');
+        btn.disabled = true;
+        btn.textContent = '保存中...';
+
+        try {
+            // ★ 注意：是 PUT，而且必须带上 id
+            await apiJson('/note/update', 'PUT', {
+                id: Number(noteId),          // "3" → 3
+                bookName: bookName,
+                title: title,
+                content: content,
+                isPublic: Number(isPublic)
+            });
+
+            alert('保存成功');
+            location.href = '/detail.html?id=' + noteId;
+
+        } catch (e) {
+            alert('保存失败，请稍后重试');
+            console.error(e);
+            btn.disabled = false;
+            btn.textContent = '保 存';
+        }
+    }
+
+    // ============================================================
+    // 工具：把用户内容里的 < > & 转义，防止破坏页面结构
+    // ============================================================
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    init();
+</script>
+
+</body>
+</html>

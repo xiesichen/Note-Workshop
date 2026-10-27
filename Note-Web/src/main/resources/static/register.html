@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>注册 - 笔记工坊</title>
+<style>
+    body { font-family: sans-serif; display: flex; align-items: center;
+        justify-content: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+    .box { background: #fff; padding: 30px; border-radius: 8px; width: 320px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+    h3 { margin: 0 0 20px; text-align: center; }
+    input { width: 100%; padding: 9px; margin: 6px 0; box-sizing: border-box;
+        border: 1px solid #ddd; border-radius: 4px; }
+    button { width: 100%; padding: 10px; background: #4a90d9; color: #fff;
+        border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+    #msg { font-size: 14px; margin-top: 12px; min-height: 20px; text-align: center; }
+    .back { text-align: center; margin-top: 14px; }
+    .back a { color: #999; font-size: 13px; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="box">
+    <h3>📓 注册账号</h3>
+    <input id="u" placeholder="用户名（3~50 位，字母数字）">
+    <input id="p" type="password" placeholder="密码（至少 6 位）">
+    <input id="p2" type="password" placeholder="确认密码">
+    <input id="n" placeholder="昵称（可不填，默认用用户名）">
+    <button onclick="doRegister()">注 册</button>
+    <div id="msg"></div>
+    <div class="back"><a href="/login.html">已有账号？去登录 →</a></div>
+</div>
+
+<script src="/common.js"></script>
+<script>
+async function doRegister() {
+    const username = document.getElementById('u').value.trim();
+    const password = document.getElementById('p').value;
+    const password2 = document.getElementById('p2').value;
+    const nickname = document.getElementById('n').value.trim();
+    const msg = document.getElementById('msg');
+
+    function show(text, ok) {
+        msg.textContent = text;
+        msg.style.color = ok ? '#27ae60' : '#e74c3c';
+    }
+
+    if (!username || !password) { show('用户名和密码不能为空', false); return; }
+    if (password.length < 6) { show('密码至少 6 位', false); return; }
+    if (password !== password2) { show('两次密码不一致', false); return; }
+
+    show('注册中...', true);
+
+    try {
+        const user = await apiJson('/user/register', 'POST', {
+            username: username, password: password, nickname: nickname
+        });
+        show('注册成功，正在跳转登录页...', true);
+        setLoginUser(user);
+        setTimeout(() => location.href = '/', 800);
+    } catch (e) {
+        // 后端抛 RuntimeException 时返回的消息可能是 JSON，尽量取有用部分
+        show('注册失败：用户名可能已被占用', false);
+        console.error(e);
+    }
+}
+</script>
+</body>
+</html>

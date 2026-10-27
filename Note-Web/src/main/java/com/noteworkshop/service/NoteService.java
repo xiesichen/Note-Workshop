@@ -18,4 +18,10 @@ public interface NoteService {
     Note findById(Integer id);
 
     void update(Note note);
+
+
+    /**
+     * 按关键字搜索笔记
+     */
+    List<Note> search(String kw);
 }
