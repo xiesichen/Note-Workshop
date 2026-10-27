@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>我赞过的 - 笔记工坊</title>
+<style>
+    body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+    .header { background: #4a90d9; color: white; padding: 15px 30px;
+        display: flex; justify-content: space-between; align-items: center; }
+    .header h2 { margin: 0; font-size: 20px; }
+    .header a { color: white; text-decoration: none; margin-left: 16px; }
+    .header span { margin-left: 16px; }
+    .header a:hover { text-decoration: underline; }
+    .wrap { max-width: 800px; margin: 20px auto; }
+    .bar { display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 14px; color: #666; font-size: 14px; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px;
+        box-shadow: 0 2px 5px rgba(0,0,0,.08); }
+    .card h3 { margin: 0 0 6px; font-size: 17px; cursor: pointer; }
+    .card h3:hover { color: #4a90d9; }
+    .rank { display: inline-block; width: 24px; height: 24px; line-height: 24px;
+        text-align: center; border-radius: 50%; background: #eee; color: #666;
+        font-size: 13px; margin-right: 8px; vertical-align: middle; }
+    .rank.top1 { background: #ffd700; color: #7a5c00; }
+    .rank.top2 { background: #c0c0c0; color: #555; }
+    .rank.top3 { background: #cd7f32; color: #fff; }
+    .meta { color: #999; font-size: 13px; margin-bottom: 8px; }
+    .text { color: #444; font-size: 14px; line-height: 1.7;
+        white-space: pre-wrap; word-break: break-word; }
+    .like-bar { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f2f2f2; }
+    .like-btn { cursor: pointer; color: #999; font-size: 14px; user-select: none;
+        display: inline-block; padding: 2px 8px; border-radius: 4px; }
+    .like-btn:hover { color: #e74c3c; background: #fff5f5; }
+    .like-btn.liked { color: #e74c3c; }
+    .pager { display: flex; justify-content: center; align-items: center; gap: 14px;
+        margin: 24px 0 40px; font-size: 14px; color: #666; }
+    .pager button { padding: 7px 18px; border: 1px solid #ddd; background: #fff;
+        border-radius: 5px; cursor: pointer; font-size: 13px; }
+    .pager button:disabled { color: #ccc; cursor: not-allowed; background: #fafafa; }
+    .empty { text-align: center; color: #999; padding: 60px 0; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h2>📓 笔记工坊</h2>
+    <div id="userArea"><a href="/">大厅</a></div>
+</div>
+
+<div class="wrap">
+    <div class="bar"><span id="summary">加载中...</span><span></span></div>
+    <div id="list"></div>
+    <div class="pager" id="pager" style="display:none;">
+        <button id="prev" onclick="go(1)">← 上一页</button>
+        <span id="pageInfo"></span>
+        <button id="next" onclick="go(-1)">下一页 →</button>
+    </div>
+</div>
+
+<script src="/common.js"></script>
+<script>
+
+    // ==================== ① 必须登录 ====================
+    const me = requireLogin();
+
+    if (me) {
+        document.getElementById('userArea').innerHTML =
+            '<a href="/">大厅</a>' +
+            '<a href="/hot.html">🔥 热门榜</a>' +
+            '<a href="/my.html">📚 我的笔记</a>' +
+            '<span style="margin-left:16px;">欢迎，' + (me.nickname || me.username) + '</span>' +
+            '<a href="javascript:void(0)" onclick="logout()">退出</a>';
+    }
+
+    // ==================== ② 分页状态 ====================
+    let curPage = 1;
+    const PAGE_SIZE = 5;
+
+    // ==================== ③ 加载我点赞过的 ====================
+    async function load() {
+        let data;
+        try {
+            data = await api('/like/my?page=' + curPage + '&size=' + PAGE_SIZE);
+        } catch (e) {
+            document.getElementById('list').innerHTML =
+                '<div class="empty">加载失败：' + e.message + '</div>';
+            return;
+        }
+
+        const list = data.list || [];
+        const pages = data.pages || 0;
+
+        document.getElementById('summary').textContent =
+            '我赞过的 · 共 ' + (data.total || 0) + ' 篇';
+
+        const box = document.getElementById('list');
+
+        if (list.length === 0) {
+            box.innerHTML = '<div class="empty">还没给任何笔记点过赞</div>';
+            document.getElementById('pager').style.display = 'none';
+            return;
+        }
+
+        box.innerHTML = list.map(n => `
+            <div class="card">
+                <h3 onclick="location.href='/detail.html?id=${n.id}'">${n.title}</h3>
+                <div class="meta">📖 ${n.bookName || '（未填图书）'} · ${(n.createTime || '').replace('T',' ').slice(0,16)}</div>
+                <div class="text">${n.content || ''}</div>
+                <div class="like-bar">
+                    <span class="like-btn liked" onclick="toggleLike(${n.id}, this)">
+                        👍 <span class="like-cnt">${n.likeCount || 0}</span>
+                    </span>
+                </div>
+            </div>
+        `).join('');
+
+        const pager = document.getElementById('pager');
+        if (pages > 1) {
+            pager.style.display = 'flex';
+            document.getElementById('pageInfo').textContent = '第 ' + data.page + ' / ' + pages + ' 页';
+            document.getElementById('prev').disabled = (data.page <= 1);
+            document.getElementById('next').disabled = (data.page >= pages);
+        } else {
+            pager.style.display = 'none';
+        }
+    }
+
+    // ==================== ④ 取消点赞后重新加载（这条会从列表消失）====================
+    async function toggleLike(noteId, el) {
+        try {
+            const res = await apiJson('/like/toggle?noteId=' + noteId, 'POST', {});
+            if (!res.liked) {
+                // 取消了 → 从"我赞过的"里消失了，重新加载
+                load();
+            }
+        } catch (e) {
+            alert('操作失败：' + e.message);
+        }
+    }
+
+    function go(dir) {
+        if (dir === 1 && curPage > 1) { curPage--; load(); window.scrollTo(0, 0); }
+        else if (dir === -1) { curPage++; load(); window.scrollTo(0, 0); }
+    }
+
+    load();
+
+</script>
+</body>
+</html>

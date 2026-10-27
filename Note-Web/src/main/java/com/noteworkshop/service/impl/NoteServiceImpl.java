@@ -6,7 +6,9 @@ import com.noteworkshop.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class NoteServiceImpl implements NoteService {
@@ -95,6 +97,47 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public List<Note> search(String kw) {
         return noteMapper.search(kw);
+    }
+
+
+    /** 每页固定 5 条 */
+    private static final int PAGE_SIZE = 5;
+
+    @Override
+    public Map<String, Object> findMyNotes(Integer userId, int page) {
+        int p = Math.max(page, 1);              // 页码最小是 1
+        int offset = (p - 1) * PAGE_SIZE;       // 第 1 页 0、第 2 页 5、第 3 页 10...
+
+        List<Note> list = noteMapper.findByUserId(userId, offset, PAGE_SIZE);
+        int total = noteMapper.countByUserId(userId);
+        int pages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        result.put("page", p);
+        result.put("size", PAGE_SIZE);
+        result.put("pages", pages);
+        return result;
+    }
+
+
+    @Override
+    public Map<String, Object> findHotNotes(int page) {
+        int p = Math.max(page, 1);
+        int offset = (p - 1) * PAGE_SIZE;
+
+        List<Note> list = noteMapper.findHot(offset, PAGE_SIZE);
+        int total = noteMapper.countPublic();
+        int pages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        result.put("page", p);
+        result.put("size", PAGE_SIZE);
+        result.put("pages", pages);
+        return result;
     }
 }
 

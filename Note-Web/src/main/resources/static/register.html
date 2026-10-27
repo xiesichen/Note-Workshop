@@ -51,11 +51,13 @@ async function doRegister() {
     show('注册中...', true);
 
     try {
-        const user = await apiJson('/user/register', 'POST', {
+        const data = await apiJson('/user/register', 'POST', {
             username: username, password: password, nickname: nickname
         });
-        show('注册成功，正在跳转登录页...', true);
-        setLoginUser(user);
+        // 后端返回：{ token, user }
+        show('注册成功，正在跳转...', true);
+        setToken(data.token);
+        setLoginUser(data.user);
         setTimeout(() => location.href = '/', 800);
     } catch (e) {
         // 后端抛 RuntimeException 时返回的消息可能是 JSON，尽量取有用部分

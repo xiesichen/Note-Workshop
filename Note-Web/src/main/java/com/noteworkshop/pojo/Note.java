@@ -40,4 +40,7 @@ public class Note {
 
     /** 逻辑删除 0未删 1已删 */
     private Integer deleted;
+
+    /** 点赞数（不是 note 表的列，是统计出来的） */
+    private Integer likeCount;
 }

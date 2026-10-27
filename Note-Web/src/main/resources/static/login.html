@@ -57,16 +57,21 @@
                 if (!res.ok) throw new Error('fail');
                 return res.json();
             })
-            .then(user => {
+            .then(data => {
+                // 后端返回：{ token: "eyJhbG...", user: {id, username, nickname, ...} }
+
+                const user = data.user;      // ★ 注意取 data.user
+
                 // 显示"登录成功：管理员"
                 document.getElementById('msg').style.color = '#27ae60';
                 document.getElementById('msg').textContent =
                     '登录成功：' + (user.nickname || user.username);
 
-                // ★ 新增②：把用户对象存进 localStorage
+                // ★ 存 token（发请求要用）和用户信息（页面显示要用）
+                setToken(data.token);
                 setLoginUser(user);
 
-                // ★ 新增③：停 0.7 秒后跳回大厅
+                // 停 0.7 秒后跳回大厅
                 setTimeout(function () { location.href = '/'; }, 700);
             })
             .catch(() => {

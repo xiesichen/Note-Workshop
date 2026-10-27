@@ -16,7 +16,15 @@
         .meta { color: #999; font-size: 13px; }
 
         /* 【新增】顶栏链接的样式 */
-        .header a { color: white; text-decoration: none; margin-left: 12px; }
+        .header a { color: white; text-decoration: none; margin-left: 16px; }
+        .header #userArea span { margin-left: 16px; }
+
+        /* 点赞条 */
+        .like-bar { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f2f2f2; }
+        .like-btn { cursor: pointer; color: #999; font-size: 14px; user-select: none;
+            display: inline-block; padding: 2px 8px; border-radius: 4px; }
+        .like-btn:hover { color: #e74c3c; background: #fff5f5; }
+        .like-btn.liked { color: #e74c3c; }
         .header a:hover { text-decoration: underline; }
     </style>
 </head>
@@ -26,6 +34,8 @@
     <h2>📓 笔记工坊</h2>
     <div>
         <input id="search" placeholder="🔍 搜索" style="padding:6px 10px;border:none;border-radius:4px;width:160px;">
+        <a href="/hot.html">🔥 热门榜</a>
+        <a href="/my.html" id="myBtn" style="display:none;">📚 我的笔记</a>
         <a href="/add.html" id="writeBtn" style="display:none;">✏️ 写笔记</a>
         <span id="userArea"></span>
     </div>
@@ -65,6 +75,7 @@
         //
         //  onclick="logout()"  → 点"退出"时调用 common.js 里的 logout()
         document.getElementById('writeBtn').style.display = 'inline';
+        document.getElementById('myBtn').style.display = 'inline';
         //  href="javascript:void(0)" → 让 <a> 不跳转（只是个按钮的样子）
     } else {
         // ---- 未登录 ----
@@ -87,10 +98,43 @@
         list.innerHTML = notes.map(n => `
             <div class="card" onclick="location.href='/detail.html?id=${n.id}'">
                 <h3>${n.title}</h3>
-                <div class="meta">${n.createTime || ''}</div>
+                <div class="meta">📖 ${n.bookName || '（未填图书）'} · ${(n.createTime || '').replace('T',' ').slice(0,16)}</div>
                 <p>${n.content || ''}</p>
+                <div class="like-bar">
+                    <span class="like-btn" onclick="event.stopPropagation(); toggleLike(${n.id}, this)">
+                        👍 <span class="like-cnt">${n.likeCount || 0}</span>
+                    </span>
+                </div>
             </div>
         `).join('');
+    }
+
+    // ===== 点赞 / 取消点赞 =====
+    async function toggleLike(noteId, el) {
+        // 没登录先去登录
+        if (!getLoginUser()) {
+            alert('请先登录');
+            location.href = '/login.html';
+            return;
+        }
+
+        try {
+            // apiJson 自动带 token
+            const res = await apiJson('/like/toggle?noteId=' + noteId, 'POST', {});
+
+            const cntEl = el.querySelector('.like-cnt');
+            const cur = parseInt(cntEl.textContent) || 0;
+
+            if (res.liked) {
+                cntEl.textContent = cur + 1;
+                el.classList.add('liked');       // 变红
+            } else {
+                cntEl.textContent = Math.max(0, cur - 1);
+                el.classList.remove('liked');
+            }
+        } catch (e) {
+            alert('操作失败：' + e.message);
+        }
     }
 
     // ===== 首次加载全部笔记 =====

@@ -28,10 +28,28 @@ function setLoginUser(user) {
     localStorage.setItem('loginUser', JSON.stringify(user));
 }
 
+// ==================== token 管理（JWT）====================
+
+// 存 token（登录成功后调用）
+function setToken(token) {
+    localStorage.setItem('token', token);
+}
+
+// 取 token（发请求时用）
+function getToken() {
+    return localStorage.getItem('token');
+}
+
+// 清掉所有登录状态（token + 用户信息）
+function clearLogin() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('loginUser');
+}
+
 // 退出登录
 function logout() {
-    localStorage.removeItem('loginUser');   // 删掉存储
-    location.href = '/';                    // 跳回大厅首页
+    clearLogin();              // token 和用户信息一起清
+    location.href = '/';       // 跳回大厅首页
 }
 
 // 检查登录，没登录就跳到登录页
@@ -60,10 +78,25 @@ function requireLogin() {
 async function api(url, options) {
     options = options || {};          // 没传配置就给个空对象
 
+    // ★ 每次请求前：把 token 加到请求头（有 token 才加）
+    const token = getToken();
+    if (token) {
+        options.headers = options.headers || {};        // 保住原有的头（比如 Content-Type）
+        options.headers['Authorization'] = 'Bearer ' + token;
+    }
+
     const res = await fetch(url, options);   // 真正发请求
 
     // res.ok = true 表示状态码 200~299（成功）
     if (!res.ok) {
+        // ★ 401 = 未登录 或 token 无效/过期
+        if (res.status === 401) {
+            clearLogin();                            // 清掉本地登录状态
+            alert('登录已过期，请重新登录');
+            location.href = '/login.html';           // 跳登录页
+            throw new Error('未登录');
+        }
+
         const text = await res.text();       // 读错误信息
         throw new Error(text || ('请求失败 ' + res.status));
         // throw 会中断，跳到调用处的 catch
